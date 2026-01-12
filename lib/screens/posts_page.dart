@@ -1,29 +1,26 @@
 import 'dart:convert';
-
 import 'package:di_json_app/models/post.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class PostsPage extends StatefulWidget {
   const PostsPage({Key? key}) : super(key: key);
 
   @override
-  _PostsPageState createState() => _PostsPageState();
+  State<PostsPage> createState() => _PostsPageState();
 }
 
 class _PostsPageState extends State<PostsPage> {
-  // future qui retourne la liste des posts
-  late Future<List<Post>> _postsFuture;
-
- 
+  // Future qui retournera la liste de posts
+  late Future<List<Post>> futurePosts;
 
   @override
-   void initState() {
+  void initState() {
     super.initState();
-    // Initialiser la future pour charger les posts
-    _postsFuture = _loadPosts();
+    futurePosts = _loadPosts();
   }
-    // Méthode pour charger le JSON depuis les assets
+
+  // Méthode pour charger le JSON depuis les assets
   Future<List<Post>> _loadPosts() async {
     // On récupère le contenu brut du fichier JSON
     final String response =
@@ -33,8 +30,42 @@ class _PostsPageState extends State<PostsPage> {
     // On convertit chaque élément en objet Post
     return data.map((json) => Post.fromJson(json)).toList();
   }
+
   @override
   Widget build(BuildContext context) {
-    return Container();
+    return Scaffold(
+        appBar: AppBar(
+          title: const Text('Liste de Posts'),
+        ),
+        body: FutureBuilder<List<Post>>(
+          future: futurePosts,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            } else if (snapshot.hasError) {
+              return Text('Erreur lors du chargement des données');
+            }  else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text('Aucun donnee disponible'));
+            } else {
+              final posts = snapshot.data!;
+              return ListView.builder(
+                itemCount: posts.length,
+                itemBuilder: (context, index) {
+                  final post = posts[index];
+                  return Card(
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        child: ListTile(
+                          title: Text(post.title),
+                          subtitle: Text(post.content),
+                        ),
+                  );
+                },
+              );
+            }
+          },
+        ));
   }
 }
